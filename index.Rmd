@@ -1,0 +1,958 @@
+---
+title: "Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cerulean
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(leaflet)
+library(ggplot2)
+library(plotly)
+library(chilemapas)
+library(maps)
+library(tmap)
+library(sf)
+library(viridis)
+library(geojsonio)
+library(readxl)
+
+```
+
+<style>
+.tipo1{
+  fill: #AC75D6; 
+  stroke: #FFFFFF; 
+  stroke-width: 10;
+}
+
+.tipo2:hover{
+  transition: 1s fill; 
+  fill: #000000;
+}
+
+.tipo3:hover{
+  fill: #EAA81C; 
+  transition: 1s fill; 
+}
+</style>
+
+Ingresos, pobreza y seguridad (2017) {.storyboard}
+===============================================
+-----------------------------------------------------------------------
+
+### Promedio de Ingresos (2017)
+
+```{r fig.align='center'}
+ESI17 <- read_xlsx("datos/Del_base2.xlsx",sheet=11)
+colnames(ESI17)[1]<-"COMUNA"
+colnames(ESI17)[2]<-"PROMEDIO"
+colnames(ESI17)[3]<-"MEDIANA"
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+ESI17<-mutate_if(ESI17, is.character, toupper)
+data_RM11 <- comunas_RM %>% left_join(ESI17, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$PROMEDIO)
+
+data_RM11 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(PROMEDIO), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": $", round(PROMEDIO,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(lng=-70.55, lat=-33.4117, popup = "Las Condes: $1377574")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: $1835599")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: $1485393")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: $327193")%>%
+  addMarkers(-71.4558, -33.8944, popup = "San Pedro: $340911")%>%
+  addMarkers(-70.6417, -33.5333, popup = "San Ramón: $369911")
+```
+
+### Mediana de Ingresos (2017)
+
+```{r fig.align='center'}
+ESI17 <- read_xlsx("datos/Del_base2.xlsx",sheet=11)
+colnames(ESI17)[1]<-"COMUNA"
+colnames(ESI17)[2]<-"PROMEDIO"
+colnames(ESI17)[3]<-"MEDIANA"
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+ESI17<-mutate_if(ESI17, is.character, toupper)
+data_RM11 <- comunas_RM %>% left_join(ESI17, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$MEDIANA)
+
+data_RM11 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(MEDIANA), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": $", round(MEDIANA,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6, -33.4583, popup = "Ñuñoa: $927943")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: $1127354")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: $1000000")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: $300000")%>%
+  addMarkers(-71.4558, -33.8944, popup = "San Pedro: $319725")%>%
+  addMarkers(-70.7167, -33.5, popup = "Cerrillos: $320000")
+
+```
+
+### Número de personas en situación de pobreza por ingresos (2017)
+
+```{r fig.align='center'}
+Pobreza17 <- read_xlsx("datos/Del_base2.xlsx",sheet=8)
+Pobreza17<-mutate_if(Pobreza17, is.character, toupper)
+colnames(Pobreza17)[1]<-"COMUNA"
+colnames(Pobreza17)[2]<-"Personas"
+colnames(Pobreza17)[3]<-"Porcentaje"
+data_RM8 <- comunas_RM %>% left_join(Pobreza17, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$Personas)
+
+data_RM8 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(Personas), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(Personas,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 99")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 513")%>%
+  addMarkers(-71.1164, -34.0278, popup = "Alhué: 303")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 63255")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 31280")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 28806")
+```
+
+### Porcentaje de personas en situación de pobreza por ingresos (2017)
+
+```{r fig.align='center'}
+Pobreza17 <- read_xlsx("datos/Del_base2.xlsx",sheet=8)
+Pobreza17<-mutate_if(Pobreza17, is.character, toupper)
+colnames(Pobreza17)[1]<-"COMUNA"
+colnames(Pobreza17)[2]<-"Personas"
+colnames(Pobreza17)[3]<-"Porcentaje"
+data_RM8 <- comunas_RM %>% left_join(Pobreza17, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$Porcentaje)
+
+data_RM8 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(Porcentaje), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(Porcentaje,4)*100,"%"),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 0,1%")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 0,2%")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 0,4%")%>%
+  addMarkers(-70.63419, -33.58331, popup = "La Pintana: 14,1%")%>%
+  addMarkers(-71.1167, -33.5167, popup = "María Pinto: 10,8%")%>%
+  addMarkers(-70.675, -33.5667, popup = "El Bosque: 9,6%")
+```
+
+### Número de guardias, inspectores o vigilantes municipales (2017)
+
+```{r fig.align='center'}
+Municipio <- read_xlsx("datos/Del_base2.xlsx",sheet=7)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+colnames(Municipio)[1]<-"COMUNA"
+data_RM7 <- comunas_RM %>% left_join(Municipio, by = "COMUNA")
+data_RM7$a2017 = as.numeric(gsub("[[:punct:]]", "", data_RM7$a2017))
+data_RM7$a2020 = as.numeric(gsub("[[:punct:]]", "", data_RM7$a2020))
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM7 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 406")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 281")%>%
+  addMarkers(-70.7, -33.4667, popup = "Huechuraba: 170")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: 0")%>%
+  addMarkers(-70.7167, -33.4033, popup = "Renca: 0")%>%
+  addMarkers(-70.6333, -33.4083, popup = "Recoleta: 0")
+```
+
+***
+
+Podemos observar que el promedio de ingresos, así como la mediana son especialmente altos en 3 comunas en específico.
+Estas 3 comunas también coinciden en presentar un alto nivel de guardias de seguridad contratos municipalmente y bajos niveles de pobreza.
+A pesar de que el objetivo de este proyecto no es crear políticas públicas, sino ser una herramienta para el diseño estas, podemos decir a priori que el nivel de ingresos y la inversión en seguridad se correlacionan de laguna forma con el nivel de pobreza.
+
+
+
+
+
+Comercio Ambulante {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Comercio_Ambulante <- read_xlsx("datos/Del_base2.xlsx",sheet=1)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM <- comunas_RM %>% left_join(Comercio_Ambulante, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 3859")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 6164")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 18359")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 319")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 105")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 7")
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Para el análisis delictual se consideraron los delitos de robo con violencia y por sorpresa, violencia intrafamiliar, hurto, comercio ambulante y homicidio. Para esto se utilizaron bases extraídas del Centro de Estudio y Análisis del Delito. 
+El comercio ambulante es más frecuente en las comunas más centrales de Santiago, especialmente en Santiago centro. Esto puede ser causado por una afluencia de gente mayor en esta comuna comparada con el resto.
+
+
+
+Homicidio {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Homicidio <- read_xlsx("datos/Del_base2.xlsx",sheet=2)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM2 <- comunas_RM %>% left_join(Homicidio, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM2 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6333, -33.4083, popup = "Recoleta: 24")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 21")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 21")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 22")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 0")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 0")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 1")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los homicidios se distribuyen de forma similar a los hurtos, se concentran especialmente en la
+zona centrar y periférico sur de Santiago, y son especialmente bajos en las zonas más alejadas.
+Otra observación es que parecen ser menores en las comunas con niveles más altos de ingresos.
+
+
+
+Hurto {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Hurto <- read_xlsx("datos/Del_base2.xlsx",sheet=3)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM3 <- comunas_RM %>% left_join(Hurto, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM3 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 10073")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 6182")%>%
+  addMarkers(-70.5833, -33.5333, popup = "La Florida: 5407")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 4202")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 831")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 979")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 3003")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 3827")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Respecto al hurto,  a pesar de ser más alto en las comunas en el centro, a simple vista se reparte de forma mucho menos concentrada comparado con el resto de delitos.
+
+
+
+Robo con violencia o intimidación {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Robo_Violencia <- read_xlsx("datos/Del_base2.xlsx",sheet=4)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM4 <- comunas_RM %>% left_join(Robo_Violencia, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM4 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 5373")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 3619")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 2616")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 1546")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 826")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 595")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 232")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los robos con violencia son especialmente altos en las comunas centrales, y se observa que son también muy bajos en zonas alejadas del centro esto puede sen por una frecuencia de personas mayor, o en su defecto podría deberse a un sesgo por una baja cantidad de carabineros en estas zonas.
+
+
+Robo con sorpresa {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Robo_sorpresa <- read_xlsx("datos/Del_base2.xlsx",sheet=5)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM5 <- comunas_RM %>% left_join(Robo_sorpresa, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM5 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 4455")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 1108")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 1358")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 430")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 103")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 45")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 1141")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los robos con sorpresa son especialmente altos en las comunas centrales, y se observa que son también muy bajos en zonas alejadas del centro esto puede sen por una frecuencia de personas mayor, o en su defecto podría deberse a un sesgo por una baja cantidad de carabineros en estas zonas.
+
+
+Violencia intrafamiliar {data-navmenu=Delito_2017}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2017)
+
+```{r fig.align='center'}
+Violencia <- read_xlsx("datos/Del_base2.xlsx",sheet=6)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM6 <- comunas_RM %>% left_join(Violencia, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2017)
+
+data_RM6 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2017), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2017,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 4466")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 2950")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 2275")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 665")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 167")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 361")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 2183")%>%
+  addMarkers(-70.5833, -33.5333, popup = "La Florida: 2209")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Se encuentra que los casos de violencia intrafamiliar estaban presentes también en la zona central de Santiago, sin embargo, estos son especialmente alto en comunas alejadas del centro hacia el sur de Santiago, para luego volver a descender al alejarnos a comunas mas lejanas en la región metropolitana. Esta baja también podría ser atribuida a pocas denuncias, así que sería apresurado sacar conclusiones.
+
+
+Evolución de delitos a través del tiempo
+===============================================
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Anual (2017 a 2020)
+
+```{r fig.align='center'}
+Graph <- read_xlsx("datos/Base _grafico.xlsx",sheet=2)
+colnames(Graph)[1]<-"DELITO"
+
+g2<-Graph %>%
+  ggplot(aes(x = Año, y = Casos)) +
+  geom_line(aes(color = DELITO), size=1.1)+
+  scale_x_continuous(breaks = seq(2017, 2020, 1),
+                     labels = seq(2017, 2020, 1))+
+  scale_y_continuous(breaks = seq(250, 70000, 10000),
+                     labels = seq(250, 70000, 10000))+
+  scale_color_brewer(name = NULL, type = "qual", palette = "Dark2")+
+  labs(title = "Evolución de distintos delitos a través del tiempo",
+       subtitle = "2017-2020",
+       caption = "Fuente: Elaboración propia en base a estadísticas del CEAD",
+       x = NULL,
+       y = "Frecuencia del delito") +
+  theme_minimal() +
+  theme(legend.position = c(0.9, 0.2))
+
+ggplotly(g2)
+```
+
+### Trimestral (2017 a 2020)
+
+```{r fig.align='center'}
+Graph2 <- read_xlsx("datos/Base _grafico.xlsx",sheet=3)
+colnames(Graph2)[1]<-"DELITO"
+
+g3<-Graph2 %>%
+  ggplot(aes(x = Trimestre, y = Casos)) +
+  geom_line(aes(color = DELITO), size=1.1)+
+  scale_x_continuous(breaks = seq(2017.1, 2020.12, 1),
+                     labels = seq(2017, 2020, 1))+
+  scale_y_continuous(breaks = seq(50, 20000, 4000),
+                     labels = seq(50, 20000, 4000))+
+  scale_color_brewer(name = NULL, type = "qual", palette = "Dark2")+
+  labs(title = "Evolución de distintos delitos a través del tiempo",
+       subtitle = "2017-2020",
+       caption = "Fuente: Elaboración propia en base a estadísticas del CEAD",
+       x = NULL,
+       y = "Frecuencia del delito") +
+  theme_minimal() +
+  theme(legend.position = c(0.9, 0.2))
+
+ggplotly(g3)
+```
+
+
+### Mensual (2017 a 2020)
+
+```{r fig.align='center'}
+Graph3 <- read_xlsx("datos/Base _grafico.xlsx",sheet=4)
+colnames(Graph3)[1]<-"DELITO"
+
+g4<-Graph3 %>%
+  ggplot(aes(x = Mes, y = Casos)) +
+  geom_line(aes(color = DELITO), size=1.1)+
+  scale_x_continuous(breaks = seq(2017.1, 2020.12, 1),
+                     labels = seq(2017, 2020, 1))+
+  scale_y_continuous(breaks = seq(10, 7000, 1000),
+                     labels = seq(10, 7000, 1000))+
+  scale_color_brewer(name = NULL, type = "qual", palette = "Dark2")+
+  labs(title = "Evolución de distintos delitos a través del tiempo",
+       subtitle = "2017-2020",
+       caption = "Fuente: Elaboración propia en base a estadísticas del CEAD",
+       x = NULL,
+       y = "Frecuencia del delito") +
+  theme_minimal() +
+  theme(legend.position = c(0.9, 0.2))
+
+ggplotly(g4)
+```
+
+Column 
+----------------------------------------------------------------------
+
+
+> A partir del 2019 el nivel de todos los delitos baja a excepción de los homicidios, los cuales se mantienen casi constantes durante el tiempo. Esta particular variación puede parecer positiva, sin embargo, no es descabellado relacionarla con el estallido social y la posterior cuarentena por la pandemia, por eso se necesita un análisis de los otros factores para llegar a conclusiones concretas.
+
+
+
+Ingresos, pobreza y seguridad (2020) {.storyboard}
+===============================================
+-----------------------------------------------------------------------
+
+### Promedio de Ingresos (2020)
+
+```{r fig.align='center'}
+ESI20 <- read_xlsx("datos/Del_base2.xlsx",sheet=10)
+colnames(ESI20)[1]<-"COMUNA"
+colnames(ESI20)[2]<-"PROMEDIO"
+colnames(ESI20)[3]<-"MEDIANA"
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+ESI20<-mutate_if(ESI20, is.character, toupper)
+data_RM10 <- comunas_RM %>% left_join(ESI20, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$PROMEDIO)
+
+data_RM10 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(PROMEDIO), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": $", round(PROMEDIO,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: $1842269")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: $1661992")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: $1545689")%>%
+  addMarkers(-70.6, -33.4583, popup = "Ñuñoa: $1299785")%>%
+  addMarkers(-70.75, -33.8167, popup = "Paine: $338655")%>%
+  addMarkers(-70.625, -33.5333, popup = "La Granja: $355405")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: $355661")
+```
+
+### Mediana de Ingresos (2020)
+
+```{r fig.align='center'}
+ESI20 <- read_xlsx("datos/Del_base2.xlsx",sheet=10)
+colnames(ESI20)[1]<-"COMUNA"
+colnames(ESI20)[2]<-"PROMEDIO"
+colnames(ESI20)[3]<-"MEDIANA"
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+ESI20<-mutate_if(ESI20, is.character, toupper)
+data_RM10 <- comunas_RM %>% left_join(ESI20, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$MEDIANA)
+
+data_RM10 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(MEDIANA), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": $", round(MEDIANA,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: $1400000")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: $1200000")%>%
+  addMarkers(-70.6, -33.4583, popup = "Ñuñoa: $1001316")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: $1001316")%>%
+  addMarkers(-70.625, -33.5333, popup = "La Granja: $302042")%>%
+  addMarkers(-70.75, -33.8167, popup = "Paine: $330434")%>%
+  addMarkers(-70.63419, -33.58331, popup = "La Pintana: $340000")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: $352382")
+```
+
+### Número de personas en situación de pobreza por ingresos (2020)
+
+```{r fig.align='center'}
+Pobreza20 <- read_xlsx("datos/Del_base2.xlsx",sheet=9)
+Pobreza20<-mutate_if(Pobreza20, is.character, toupper)
+colnames(Pobreza20)[1]<-"COMUNA"
+colnames(Pobreza20)[3]<-"Personas"
+colnames(Pobreza20)[4]<-"Porcentaje"
+data_RM9 <- comunas_RM %>% left_join(Pobreza20, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$Personas)
+
+data_RM9 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(Personas), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(Personas,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-71.1164, -34.0278, popup = "Alhué: 537")%>%
+  addMarkers(-71.1167, -33.5167, popup = "María Pinto: 1544")%>%
+  addMarkers(-71.4558, -33.8944, popup = "San Pedro: 1594")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 5778")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 3240")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 9269")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 51880")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 40907")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 35937")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 6891")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 42878")%>%
+  addMarkers(-70.5833, -33.5333, popup = "La Florida: 32433")
+```
+
+### Porcentaje de personas en situación de pobreza por ingresos (2020)
+
+```{r fig.align='center'}
+Pobreza20 <- read_xlsx("datos/Del_base2.xlsx",sheet=9)
+Pobreza20<-mutate_if(Pobreza20, is.character, toupper)
+colnames(Pobreza20)[1]<-"COMUNA"
+colnames(Pobreza20)[3]<-"Personas"
+colnames(Pobreza20)[4]<-"Porcentaje"
+data_RM9 <- comunas_RM %>% left_join(Pobreza20, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$Porcentaje)
+
+data_RM9 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(Porcentaje), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(Porcentaje,4)*100,"%"),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 3,33%")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 2,79%")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 3,64%")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 5,50%",)%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: 14,39%")%>%
+  addMarkers(-70.6667, -33.4167, popup = "Independencia: 13,93%")%>%
+  addMarkers(-70.63419, -33.58331, popup = "La Pintana: 15,31%")%>%
+  addMarkers(-70.725, -33.45, popup = "Lo Prado: 13,72%")%>%
+  addMarkers(-70.6333, -33.4083, popup = "Recoleta: 13,24%")
+```
+
+### Número de guardias, inspectores o vigilantes municipales (2020)
+
+```{r fig.align='center'}
+Municipio <- read_xlsx("datos/Del_base2.xlsx",sheet=7)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+colnames(Municipio)[1]<-"COMUNA"
+data_RM7 <- comunas_RM %>% left_join(Municipio, by = "COMUNA")
+data_RM7$a2017 = as.numeric(gsub("[[:punct:]]", "", data_RM7$a2017))
+data_RM7$a2020 = as.numeric(gsub("[[:punct:]]", "", data_RM7$a2020))
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM7 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 736")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 146")%>%
+  addMarkers(-70.6917, -33.5167, popup = "Lo Espejo: 0")%>%
+  addMarkers(-70.7167, -33.4033, popup = "Renca: 18")%>%
+  addMarkers(-70.6333, -33.4083, popup = "Recoleta: 0")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 259")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 237")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 155")%>%
+  addMarkers(-70.7333, -33.3667, popup = "Quilicura: 228")
+```
+
+***
+
+El liderazgo de ingresos se mantiene en 2 de las 3 comunas con nivel más alto en el 2017, solamente lo Barnechea Pierde algo de liderazgo en esta categoría, lo que lleva a pensar que hubo algún factor posiblemente relacionado a la pandemia que afectó a esta comuna en específico, sin embargo, se necesita un análisis más amplio para definir si esta es la causa real.
+
+
+
+
+
+
+
+
+Comercio Ambulante {data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Comercio_Ambulante <- read_xlsx("datos/Del_base2.xlsx",sheet=1)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM <- comunas_RM %>% left_join(Comercio_Ambulante, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 1347")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 346")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 345")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 15")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 0")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 7")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 271")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 153")
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> El comercio ambulante es más frecuente en las comunas más centrales de Santiago, especialmente en Santiago centro. Esto puede ser causado por una afluencia de gente mayor en esta comuna comparada con el resto.
+
+
+
+Homicidio {data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Homicidio <- read_xlsx("datos/Del_base2.xlsx",sheet=2)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM2 <- comunas_RM %>% left_join(Homicidio, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM2 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.63419, -33.58331, popup = "La Pintana: 39%")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 33")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 25")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 14")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 25")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 3")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 0")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 2")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 3")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los homicidios se distribuyen de forma similar a los hurtos, se concentran especialmente en la
+zona centrar y periférico sur de Santiago, y son especialmente bajos en las zonas más alejadas.
+Otra observación es que parecen ser menores en las comunas con niveles más altos de ingresos. 
+
+
+
+Hurto{data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Hurto <- read_xlsx("datos/Del_base2.xlsx",sheet=3)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM3 <- comunas_RM %>% left_join(Hurto, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM3 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 3565")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 2235")%>%
+  addMarkers(-70.5833, -33.5333, popup = "La Florida: 2488")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 1911")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 571")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 508")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 1303")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 1699")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Respecto al hurto,  a pesar de ser más alto en las comunas en el centro, a simple vista se reparte de forma mucho menos concentrada comparado con el resto de delitos.
+
+
+
+Robo con violencia o intimidación{data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Robo_Violencia <- read_xlsx("datos/Del_base2.xlsx",sheet=4)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM4 <- comunas_RM %>% left_join(Robo_Violencia, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM4 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 4310")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 3015")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 2629")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 2436")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 863")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 421")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 333")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 97")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los robos con violencia son especialmente altos en las comunas centrales, y se observa que son también muy bajos en zonas alejadas del centro esto puede sen por una frecuencia de personas mayor, o en su defecto podría deberse a un sesgo por una baja cantidad de carabineros en estas zonas.
+
+
+Robo con sorpresa {data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Robo_sorpresa <- read_xlsx("datos/Del_base2.xlsx",sheet=5)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM5 <- comunas_RM %>% left_join(Robo_sorpresa, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM5 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 2776")%>%
+  addMarkers(-70.6333, -33.4083, popup = "Recoleta: 704")%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 540")%>%
+  addMarkers(-70.60454, -33.43107, popup = "Providencia: 582")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 264")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 65")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 29")%>%
+  addMarkers(-70.7, -33.4667, popup = "Estación Central: 1268")
+```
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Los robos con sorpresa son especialmente altos en las comunas centrales, y se observa que son también muy bajos en zonas alejadas del centro esto puede sen por una frecuencia de personas mayor, o en su defecto podría deberse a un sesgo por una baja cantidad de carabineros en estas zonas.
+
+
+Violencia intrafamiliar {data-navmenu=Delito_2020}
+===============================================
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Frecuencia (2020)
+
+```{r fig.align='center'}
+Violencia <- read_xlsx("datos/Del_base2.xlsx",sheet=6)
+comunas_RM <- read_sf(dsn = "datos/limites_comunas_RM/RM.shp")
+colnames(comunas_RM)[6]<-"COD_COMUNA"
+colnames(comunas_RM)[7]<-"COMUNA"
+data_RM6 <- comunas_RM %>% left_join(Violencia, by = "COMUNA")
+
+paleta_colores <- colorNumeric(palette = "Reds", domain = comunas_RM$a2020)
+
+data_RM6 %>% leaflet() %>%
+  addPolygons(weight = 1, fillColor = ~paleta_colores(a2020), 
+              fillOpacity = 1, 
+              label = ~paste0(COMUNA,": ", round(a2020,1)),
+              highlight = highlightOptions(weight = 5, 
+                                           color = "orange",
+                                           bringToFront = TRUE))%>%
+  addMarkers(-70.57577, -33.61169, popup = "Puente Alto: 3932")%>%
+  addMarkers(-70.7667, -33.5167, popup = "Maipú: 2563")%>%
+  addMarkers(-70.7, -33.5833, popup = "San Bernardo: 2215")%>%
+  addMarkers(-70.55, -33.4117, popup = "Las Condes: 627")%>%
+  addMarkers(-70.575, -33.3833, popup = "Vitacura: 142")%>%
+  addMarkers(-70.3686900, -33.2990800, popup = "Lo Barnechea: 299")%>%
+  addMarkers(-70.6653, -33.4513, popup = "Santiago: 1686")%>%
+  addMarkers(-70.5833, -33.5333, popup = "La Florida: 1775")
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+> Se encuentra que los casos de violencia intrafamiliar estaban presentes también en la zona central de Santiago, sin embargo, estos son especialmente alto en comunas alejadas del centro hacia el sur de Santiago, para luego volver a descender al alejarnos a comunas mas lejanas en la región metropolitana. Esta baja también podría ser atribuida a pocas denuncias, así que sería apresurado sacar conclusiones.
